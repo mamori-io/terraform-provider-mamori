@@ -1,0 +1,6 @@
+/terraform-provider-mamori
+/terraform-provider-mamori.exe
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
