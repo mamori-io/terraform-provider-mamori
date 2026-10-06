@@ -124,9 +124,20 @@ go test ./...
 
 The tests are unit tests and don't need a server.
 
-### Trying a local build
+### Installing a local build
 
-Build the provider into a directory:
+To use a local build from any configuration through the normal `init` flow, run:
+
+```sh
+scripts/install-local.sh          # installs as version 0.0.1
+scripts/install-local.sh 0.0.2    # or any other version
+```
+
+The script builds the provider and copies it into the local plugin directory: `%APPDATA%\terraform.d\plugins` on Windows (run it from Git Bash) and `~/.terraform.d/plugins` elsewhere. Terraform and OpenTofu then install it from there instead of the registry, as long as no CLI config defines a `provider_installation` block. After installing a rebuild under the same version, delete `.terraform.lock.hcl` in your configuration and run `init` again, because the lock file rejects the new checksum.
+
+### Trying a build without installing
+
+Alternatively, build the provider into a directory:
 
 ```sh
 go build -o ./bin/ .
