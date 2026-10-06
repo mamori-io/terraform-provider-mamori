@@ -133,7 +133,14 @@ scripts/install-local.sh          # installs as version 0.0.1
 scripts/install-local.sh 0.0.2    # or any other version
 ```
 
-The script builds the provider and copies it into the local plugin directory: `%APPDATA%\terraform.d\plugins` on Windows (run it from Git Bash) and `~/.terraform.d/plugins` elsewhere. Terraform and OpenTofu then install it from there instead of the registry, as long as no CLI config defines a `provider_installation` block. After installing a rebuild under the same version, delete `.terraform.lock.hcl` in your configuration and run `init` again, because the lock file rejects the new checksum.
+or, from PowerShell:
+
+```powershell
+scripts\install-local.ps1                   # installs as version 0.0.1
+scripts\install-local.ps1 -Version 0.0.2    # or any other version
+```
+
+The scripts build the provider and copy it into the local plugin directory: `%APPDATA%\terraform.d\plugins` on Windows and `~/.terraform.d/plugins` elsewhere. Terraform and OpenTofu then install it from there instead of the registry, as long as no CLI config defines a `provider_installation` block. The build includes the current git commit, so a rebuild after any new commit has a new checksum. After installing a rebuild under the same version, delete `.terraform.lock.hcl` in your configuration and run `init` again, because the lock file rejects the new checksum.
 
 ### Trying a build without installing
 
