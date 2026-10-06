@@ -152,6 +152,21 @@ TF_CLI_CONFIG_FILE=/absolute/path/to/dev.tfrc tofu plan
 
 `plan` and `apply` need a reachable mamori server and credentials. The same steps work with `terraform` in place of `tofu`.
 
+### Releasing
+
+Pushing a `v*` tag runs the [release workflow](.github/workflows/release.yml), which tests the provider and uses [GoReleaser](https://goreleaser.com) to publish a GitHub release in the layout the Terraform and OpenTofu registries expect:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The checksum file is signed with the GPG key in the `GPG_PRIVATE_KEY` and `PASSPHRASE` repository secrets. The registries verify it against the public key registered for the namespace. To check the GoReleaser setup locally without signing or publishing:
+
+```sh
+go run github.com/goreleaser/goreleaser/v2@latest release --snapshot --clean --skip=sign,publish
+```
+
 ### Client dependency
 
 The client is imported as `mamori.io/mamori-go-client` and redirected to `github.com/mamori-io/mamori-go-client` by a `replace` directive in `go.mod`. The `replace` pins the version, so to update the client, change the version on the `replace` line (keep the line itself) and run `go mod tidy`:
