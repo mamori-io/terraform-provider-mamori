@@ -36,11 +36,11 @@ Everything is in `internal/provider`:
 
 - `provider.go` logs in once in `Configure` and passes the session-holding `*mamori.Client` to every resource. New resources must be added to `Resources()`.
 - Each resource embeds `clientResource` (`helpers.go`), which provides `Configure`. Not-found detection is `isNotFound` (`mamori.ErrNotFound` or HTTP 404); `Read` removes the resource from state in that case.
-- Resources are keyed by name, not server id: the name attribute is `RequiresReplace` and is the import ID. Where the client's update calls need a numeric server id (secrets, HTTP resources, SSH logins), `Create` looks the object up by name afterwards and stores it in `id`.
+- Resources are keyed by name, not server id: the name attribute is `RequiresReplace` and is the import ID. Where the client's update calls need a numeric server id (secrets, HTTP resources, SSH and remote desktop logins), `Create` looks the object up by name afterwards and stores it in `id`.
 - `mamori_role_grant` and `mamori_permission` are grant/revoke resources. Every attribute forces replacement, and `Update` only copies the plan.
 - `mamori_permission` maps its `type` attribute onto the client's concrete `Permission` types (`permissionModel.permission`). `Read` lists the grantee's permissions, decodes each with `mamori.PermissionFromRecord`, and matches them loosely (`permissionMatches`). The server's record shapes vary by type, and policy grants can't be decoded at all, so policy grants are assumed present.
 
 Known limits come from the server API rather than from this code. Keep them in mind before tightening `Read`:
-- Secret values, SSH login passwords and datasource passwords are never returned, so drift in them is not detected.
+- Secret values and SSH, remote desktop and datasource passwords are never returned, so drift in them is not detected.
 - `mamori_datasource` `Read` only checks existence. The client sends empty strings as "no change", so removing a datasource setting from config does not clear it on the server.
 - `mamori_user.password` is only applied at creation.

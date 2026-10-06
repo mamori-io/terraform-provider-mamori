@@ -130,6 +130,7 @@ func (p *mamoriProvider) Resources(_ context.Context) []func() resource.Resource
 		NewIPResourceResource,
 		NewHTTPResourceResource,
 		NewSSHLoginResource,
+		NewRemoteDesktopLoginResource,
 		NewPermissionResource,
 	}
 }

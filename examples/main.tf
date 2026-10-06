@@ -96,3 +96,19 @@ resource "mamori_permission" "analysts_bastion" {
   type    = "ssh"
   name    = mamori_ssh_login.bastion.name
 }
+
+resource "mamori_remote_desktop_login" "jumpbox" {
+  name     = "win-jumpbox"
+  protocol = "rdp"
+  host     = "10.0.0.20"
+  username = "ops"
+  password = "change-me"
+  domain   = "CORP"
+  security = "nla"
+}
+
+resource "mamori_permission" "analysts_jumpbox" {
+  grantee = mamori_role.analysts.name
+  type    = "remote_desktop"
+  name    = mamori_remote_desktop_login.jumpbox.name
+}

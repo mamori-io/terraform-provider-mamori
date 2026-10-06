@@ -95,3 +95,49 @@ func TestPermissionMatches(t *testing.T) {
 		}
 	}
 }
+
+func TestRemoteDesktopLoginApplyFill(t *testing.T) {
+	m := remoteDesktopLoginModel{
+		Name:               types.StringValue("rd"),
+		Protocol:           types.StringValue("rdp"),
+		Host:               types.StringValue("10.0.0.20"),
+		Port:               types.Int64Unknown(),
+		RecordSession:      types.BoolValue(false),
+		LoginMode:          types.StringValue("manual"),
+		Username:           types.StringValue("ops"),
+		Password:           types.StringValue("pw"),
+		Width:              types.Int64Unknown(),
+		Height:             types.Int64Value(900),
+		Domain:             types.StringValue("CORP"),
+		Security:           types.StringValue("nla"),
+		IgnoreCert:         types.BoolUnknown(),
+		Console:            types.BoolUnknown(),
+		InitialProgram:     types.StringUnknown(),
+		KeyboardLayout:     types.StringUnknown(),
+		ColorDepth:         types.Int64Unknown(),
+		DisableCopy:        types.BoolValue(true),
+		DisablePaste:       types.BoolUnknown(),
+		NormalizeClipboard: types.StringUnknown(),
+	}
+	l := mamori.NewRemoteDesktopLogin("rd", mamori.RemoteDesktopProtocolRDP)
+	m.apply(l)
+	o := l.RDP
+	if o.Hostname != "10.0.0.20" || o.Port != 3389 || o.Username != "ops" || o.Password != "pw" || o.Domain != "CORP" ||
+		!o.CredentialsRequired || o.Height != 900 || o.Width != 1024 || o.Security != "nla" || !o.DisableCopy || l.Record {
+		t.Fatalf("unexpected login %+v record=%v", o, l.Record)
+	}
+
+	l.ID = 7
+	var got remoteDesktopLoginModel
+	got.fill(l)
+	if got.ID.ValueString() != "7" || got.LoginMode.ValueString() != "manual" || got.Port.ValueInt64() != 3389 ||
+		got.KeyboardLayout.ValueString() != "en-us-qwerty" || got.Username.ValueString() != "ops" || !got.Password.IsNull() {
+		t.Errorf("unexpected state %+v", got)
+	}
+
+	v := mamori.NewRemoteDesktopLogin("v", mamori.RemoteDesktopProtocolVNC)
+	got.fill(v)
+	if !got.Domain.IsNull() || !got.ColorDepth.IsNull() || got.Protocol.ValueString() != "vnc" || got.LoginMode.ValueString() != "os" {
+		t.Errorf("unexpected vnc state %+v", got)
+	}
+}
