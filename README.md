@@ -57,18 +57,19 @@ Values in the provider block take precedence over the environment. `server`, `us
 
 ## Resources
 
-| Resource                      | Manages                                                     | Import ID      |
-| ----------------------------- | ----------------------------------------------------------- | -------------- |
-| `mamori_user`                 | A password-authenticated user                               | `username`     |
-| `mamori_role`                 | A role                                                      | `name`         |
-| `mamori_role_grant`           | A role granted to a user or role                            | `role:grantee` |
-| `mamori_permission`           | A permission granted to a user or role                      | not importable |
-| `mamori_datasource`           | A database proxied by mamori                                | `name`         |
-| `mamori_secret`               | A secret in the mamori vault (single value or multi-part)   | `name`         |
-| `mamori_ip_resource`          | A named network range                                       | `name`         |
-| `mamori_http_resource`        | A proxied web application                                   | `name`         |
-| `mamori_ssh_login`            | A stored SSH target and credentials                         | `name`         |
-| `mamori_remote_desktop_login` | A stored RDP or VNC login                                   | `name`         |
+| Resource                      | Manages                                                       | Import ID                             |
+| ----------------------------- | ------------------------------------------------------------- | ------------------------------------- |
+| `mamori_user`                 | A password-authenticated user                                 | `username`                            |
+| `mamori_role`                 | A role                                                        | `name`                                |
+| `mamori_role_grant`           | A role granted to a user or role                              | `role:grantee`                        |
+| `mamori_permission`           | A permission granted to a user or role                        | not importable                        |
+| `mamori_datasource`           | A database proxied by mamori                                  | `name`                                |
+| `mamori_secret`               | A secret in the mamori vault (single value or multi-part)     | `name`                                |
+| `mamori_ip_resource`          | A named network range                                         | `name`                                |
+| `mamori_http_resource`        | A proxied web application                                     | `name`                                |
+| `mamori_ssh_login`            | A stored SSH target and credentials                           | `name`                                |
+| `mamori_requestable_resource` | A resource a user or role can request via an on-demand policy | `resource_type:grantee:resource_name` |
+| `mamori_remote_desktop_login` | A stored RDP or VNC login                                     | `name`                                |
 
 Objects are identified by name rather than server id, so renaming one replaces it.
 

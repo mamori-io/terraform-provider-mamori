@@ -97,6 +97,15 @@ resource "mamori_permission" "analysts_bastion" {
   name    = mamori_ssh_login.bastion.name
 }
 
+# Analysts may request SSH/SFTP access to the bastion; the on-demand policy
+# (created in mamori) decides who approves and for how long.
+resource "mamori_requestable_resource" "analysts_bastion" {
+  resource_type = "ssh_login"
+  resource_name = mamori_ssh_login.bastion.name
+  grantee       = mamori_role.analysts.name
+  policy_name   = "ssh-access"
+}
+
 resource "mamori_remote_desktop_login" "jumpbox" {
   name     = "win-jumpbox"
   protocol = "rdp"
