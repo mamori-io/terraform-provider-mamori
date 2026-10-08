@@ -5,7 +5,7 @@ go 1.27.1
 require (
 	github.com/hashicorp/terraform-plugin-framework v1.19.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.19.0
-	mamori.io/mamori-go-client v0.0.0-20261006102906-8810f2176d59
+	mamori.io/mamori-go-client v0.0.0-20261008014509-2a0a42bed1ec
 )
 
 require (
@@ -34,4 +34,4 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace mamori.io/mamori-go-client => github.com/mamori-io/mamori-go-client v0.0.0-20261006102906-8810f2176d59
+replace mamori.io/mamori-go-client => github.com/mamori-io/mamori-go-client v0.0.0-20261008014509-2a0a42bed1ec
