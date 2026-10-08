@@ -87,8 +87,9 @@ resource "mamori_http_resource" "grafana" {
 resource "mamori_ssh_login" "bastion" {
   name     = "bastion"
   host     = "10.0.0.5"
-  user     = "ops"
-  password = "change-me"
+  user       = "ops"
+  password   = "change-me"
+  login_mode = "cred" # or "key" with private_key_name, or "mamori" to prompt
 }
 
 resource "mamori_permission" "analysts_bastion" {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -12,14 +13,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	mamori "mamori.io/mamori-go-client"
 )
 
 var (
-	_ resource.ResourceWithConfigure   = &sshLoginResource{}
-	_ resource.ResourceWithImportState = &sshLoginResource{}
+	_ resource.ResourceWithConfigure      = &sshLoginResource{}
+	_ resource.ResourceWithImportState    = &sshLoginResource{}
+	_ resource.ResourceWithValidateConfig = &sshLoginResource{}
+	_ resource.ResourceWithModifyPlan     = &sshLoginResource{}
 )
 
 func NewSSHLoginResource() resource.Resource { return &sshLoginResource{} }
@@ -36,6 +40,7 @@ type sshLoginModel struct {
 	PrivateKeyName types.String `tfsdk:"private_key_name"`
 	ThemeName      types.String `tfsdk:"theme_name"`
 	IdleTimeout    types.Int64  `tfsdk:"idle_timeout"`
+	LoginMode      types.String `tfsdk:"login_mode"`
 }
 
 func (r *sshLoginResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -71,8 +76,76 @@ func (r *sshLoginResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			},
 			"theme_name":   schema.StringAttribute{Optional: true, Computed: true, Default: stringdefault.StaticString("")},
 			"idle_timeout": schema.Int64Attribute{Optional: true, Computed: true, Default: int64default.StaticInt64(30)},
+			"login_mode": schema.StringAttribute{
+				Description: "How the login authenticates to the remote server: \"key\" uses private_key_name, \"cred\" uses user and password, " +
+					"\"mamori\" prompts the connecting user (Web SSH only). The server derives the mode from the credentials, " +
+					"so when unset it is key if private_key_name is set, else cred if password is set, else mamori.",
+				Optional:   true,
+				Computed:   true,
+				Validators: []validator.String{stringvalidator.OneOf("key", "cred", "mamori")},
+			},
 		},
 	}
+}
+
+func (r *sshLoginResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var m sshLoginModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &m)...)
+	if resp.Diagnostics.HasError() || !known(m.LoginMode) {
+		return
+	}
+	set := func(v types.String) bool { return v.IsUnknown() || v.ValueString() != "" }
+	need := func(a string, v types.String) {
+		if !set(v) {
+			resp.Diagnostics.AddAttributeError(path.Root(a), "Missing credential", a+" is required with login_mode "+m.LoginMode.ValueString()+".")
+		}
+	}
+	forbid := func(a string, v types.String) {
+		if set(v) {
+			resp.Diagnostics.AddAttributeError(path.Root(a), "Credential not used", a+" cannot be used with login_mode "+m.LoginMode.ValueString()+".")
+		}
+	}
+	switch m.LoginMode.ValueString() {
+	case "key":
+		need("private_key_name", m.PrivateKeyName)
+	case "cred":
+		need("password", m.Password)
+		forbid("private_key_name", m.PrivateKeyName)
+	case "mamori":
+		forbid("private_key_name", m.PrivateKeyName)
+		forbid("password", m.Password)
+	}
+}
+
+// ModifyPlan fills in an unset login_mode with the mode the server will
+// derive from the planned credentials.
+func (r *sshLoginResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	var config, plan sshLoginModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() || !config.LoginMode.IsNull() {
+		return
+	}
+	mode := types.StringUnknown()
+	if !plan.PrivateKeyName.IsUnknown() && !plan.Password.IsUnknown() {
+		mode = types.StringValue(string(sshLoginModeFor(plan.PrivateKeyName.ValueString(), plan.Password.ValueString())))
+	}
+	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("login_mode"), mode)...)
+}
+
+// sshLoginModeFor returns the mode the server derives from a login's
+// credentials.
+func sshLoginModeFor(privateKeyName, password string) mamori.SSHLoginMode {
+	switch {
+	case privateKeyName != "":
+		return mamori.SSHLoginModeKey
+	case password != "":
+		return mamori.SSHLoginModeCredentials
+	}
+	return mamori.SSHLoginModePrompt
 }
 
 func (m *sshLoginModel) toLogin() *mamori.SSHLogin {
@@ -86,6 +159,7 @@ func (m *sshLoginModel) toLogin() *mamori.SSHLogin {
 		PrivateKeyName: m.PrivateKeyName.ValueString(),
 		ThemeName:      m.ThemeName.ValueString(),
 		IdleTimeout:    int(m.IdleTimeout.ValueInt64()),
+		LoginMode:      mamori.SSHLoginMode(m.LoginMode.ValueString()),
 	}
 }
 
@@ -163,6 +237,11 @@ func (r *sshLoginResource) Read(ctx context.Context, req resource.ReadRequest, r
 		if n, err := strconv.ParseInt(s, 10, 64); err == nil {
 			state.IdleTimeout = types.Int64Value(n)
 		}
+	}
+	if l.LoginMode != "" {
+		state.LoginMode = types.StringValue(string(l.LoginMode))
+	} else if state.LoginMode.IsNull() || state.LoginMode.IsUnknown() {
+		state.LoginMode = types.StringValue(string(sshLoginModeFor(state.PrivateKeyName.ValueString(), state.Password.ValueString())))
 	}
 	if state.Port.IsNull() {
 		state.Port = types.Int64Value(22)
