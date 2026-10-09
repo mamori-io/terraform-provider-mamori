@@ -104,6 +104,21 @@ resource "mamori_permission" "analysts_select" {
 }
 ```
 
+### Requestable resources
+
+`mamori_requestable_resource` lets a user or role request access to one resource through an on-demand policy (`policy_name`). The resource is given by `resource_type` and `resource_name`. `resource_type` is one of `datasource`, `encryption_key`, `http_resource`, `ip_resource`, `remote_desktop`, `resource_group`, `script`, `script_flow`, `secret` or `ssh_login`. For a datasource, `resource_login` names the login on it.
+
+`privileges` is the comma-separated list granted when a request is approved. It defaults to the usual privileges for the type, e.g. `"SSH,SFTP"` for `ssh_login`. Changing `resource_type`, `resource_name`, `resource_login` or `grantee` replaces the resource.
+
+```hcl
+resource "mamori_requestable_resource" "alice_bastion" {
+  resource_type = "ssh_login"
+  resource_name = mamori_ssh_login.bastion.name
+  grantee       = mamori_user.alice.username
+  policy_name   = "ssh-access"
+}
+```
+
 ## Limitations
 
 These come from what the mamori server API exposes:
